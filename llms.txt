@@ -66,18 +66,18 @@ const defaults = (): Todo => ({ id: crypto.randomUUID(), title: '', done: false 
 />
 ```
 
-### `useListContext`
+### `useCommand`
 
 Hook for imperative list access. Shares the same store as `<DynamicList>` by name.
 
 ```tsx
-import { useListContext } from '@jswork/react-dynamic-list';
+import { useCommand } from '@jswork/react-dynamic-list';
 ```
 
 **Signature:**
 
 ```ts
-function useListContext<T>(name: string, options?: ListOptions<T>): ListApi<T>
+function useCommand<T>(name: string, options?: ListOptions<T>): ListApi<T>
 ```
 
 **Options (`ListOptions<T>`):**
@@ -90,25 +90,29 @@ function useListContext<T>(name: string, options?: ListOptions<T>): ListApi<T>
 
 **Return (`ListApi<T>`):**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `list` | `T[]` | Current list data |
-| `change` | `ChangeEvent<T> \| null` | Last change event |
-| `add` | `() => void` | Append item via `defaults()` |
-| `remove` | `(index: number) => void` | Remove item at index |
-| `update` | `(index: number, updater: (prev: T) => T) => void` | Update item at index |
-| `reset` | `(items: T[]) => void` | Replace entire list |
-| `canAdd` | `boolean` | `false` when list length >= `max` |
-| `canRemove` | `boolean` | `false` when list length <= `min` |
+Returns `{ state, actions }` — state is reactive data, actions are imperative methods.
+
+| Path | Type | Description |
+|------|------|-------------|
+| `state.list` | `T[]` | Current list data |
+| `state.change` | `ChangeEvent<T> \| null` | Last change event |
+| `state.canAdd` | `boolean` | `false` when list length >= `max` |
+| `state.canRemove` | `boolean` | `false` when list length <= `min` |
+| `actions.add` | `() => void` | Append item via `defaults()` |
+| `actions.remove` | `(index: number) => void` | Remove item at index |
+| `actions.update` | `(index: number, updater: (prev: T) => T) => void` | Update item at index |
+| `actions.reset` | `(items: T[]) => void` | Replace entire list |
 
 **Usage:**
 
 ```tsx
 function MyControls() {
-  const { add, remove, list, canAdd, canRemove } = useListContext<Item>(
+  const { state, actions } = useCommand<Item>(
     'todos',
     { max: 5, defaults: () => ({ id: crypto.randomUUID(), title: '', done: false }) }
   );
+  const { list, canAdd, canRemove } = state;
+  const { add, remove } = actions;
 
   return (
     <>
@@ -128,6 +132,25 @@ interface ChangeEvent<T> {
   action: ListAction;
   data: T[];       // full list after mutation
   index?: number;  // affected index (undefined for reset)
+}
+
+interface ListState<T> {
+  list: T[];
+  change: ChangeEvent<T> | null;
+  canAdd: boolean;
+  canRemove: boolean;
+}
+
+interface ListActions<T> {
+  add: () => void;
+  remove: (index: number) => void;
+  update: (index: number, updater: (prev: T) => T) => void;
+  reset: (items: T[]) => void;
+}
+
+interface ListApi<T> {
+  state: ListState<T>;
+  actions: ListActions<T>;
 }
 ```
 
@@ -164,8 +187,8 @@ import { subscribe, emitChange } from '@jswork/react-dynamic-list';
 
 ```
 ┌─────────────┐     ┌──────────┐     ┌──────────┐
-│ DynamicList  │────▶│  Store   │◀────│ useList  │
-│ (component)  │     │ (global) │     │ Context  │
+│ DynamicList  │────▶│  Store   │◀────│useCommand│
+│ (component)  │     │ (global) │     │  (hook)  │
 └─────────────┘     └────┬─────┘     └──────────┘
                          │
                     ┌────▼─────┐
@@ -176,8 +199,8 @@ import { subscribe, emitChange } from '@jswork/react-dynamic-list';
 
 - **Store**: Module-scoped `Map<string, unknown[]>` holding list data outside React tree
 - **Event**: Name-keyed pub/sub for reactive cross-component propagation
-- **useListContext**: Bridge between store/events and React state via `useState`
-- **DynamicList**: Declarative wrapper combining `useListContext` + `@jswork/react-list`
+- **useCommand**: Bridge between store/events and React state via `useState`, returns `{ state, actions }`
+- **DynamicList**: Declarative wrapper combining `useCommand` + `@jswork/react-list`
 
 All components using the same `name` share the same list data and react to each other's mutations.
 
@@ -186,17 +209,18 @@ All components using the same `name` share the same list data and react to each 
 ```
 packages/lib/src/
 ├── main.ts              # Barrel exports
-├── types.ts             # ListAction, ChangeEvent, ListApi, ListConstraints
+├── types.ts             # ListAction, ChangeEvent, ListApi, ListState, ListActions
 ├── store.ts             # Global in-memory store (getList, setList, addToList, removeAt, updateAt)
 ├── event.ts             # Pub/sub system (subscribe, emitChange)
-├── use-list-context.ts  # React hook (useListContext)
+├── use-command.ts       # React hook (useCommand)
 └── dynamic-list.tsx     # DynamicList component
 ```
 
 ## Notes for AI Agents
 
-- `defaults` is required in both `<DynamicList>` and `useListContext` — it is a factory function `() => T`, not a value
+- `defaults` is required in both `<DynamicList>` and `useCommand` — it is a factory function `() => T`, not a value
 - `name` is the shared-state key — all hooks/components with the same `name` see the same list
+- `useCommand` returns `{ state, actions }` — state holds reactive data (`list`, `change`, `canAdd`, `canRemove`), actions hold imperative methods (`add`, `remove`, `update`, `reset`)
 - `ChangeEvent.data` contains the **full list after mutation**, not the delta
 - `ChangeEvent.index` is `undefined` for `reset` actions
 - `keyExtractor` defaults to `INDEX` (index-based key) — use a custom extractor for stable keys when items reorder

@@ -1,9 +1,11 @@
-import { useListContext } from '@jswork/react-dynamic-list/src/main';
+import { useCommand } from '@jswork/react-dynamic-list/src/main';
 import type { Todo } from './types';
 import { defaults } from './types';
 
 export const TodoControls = () => {
-  const { add, canAdd, list } = useListContext<Todo>('pg-todo', { defaults, max: 8 });
+  const { state, actions } = useCommand<Todo>('pg-todo', { defaults, max: 8 });
+  const { canAdd, list } = state;
+  const { add } = actions;
   const remaining = list.filter((t) => !t.done).length;
   return (
     <div className="flex items-center gap-3 mb-3">

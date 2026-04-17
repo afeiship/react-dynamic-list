@@ -1,10 +1,12 @@
-import { useListContext } from '@jswork/react-dynamic-list/src/main';
+import { useCommand } from '@jswork/react-dynamic-list/src/main';
 import type { Todo } from './types';
 
 export const TodoItem = ({ item, index }: { item: Todo; index: number }) => {
-  const { update, remove } = useListContext<Todo>('pg-todo');
+  const { actions } = useCommand<Todo>('pg-todo');
+  const { update, remove } = actions;
   return (
     <div className={`flex items-center gap-2 p-2 rounded ${item.done ? 'bg-green-50' : 'bg-base-200'}`}>
+      <span className="text-xs opacity-40 w-5 text-right">#{index + 1}</span>
       <input
         type="checkbox"
         checked={item.done}

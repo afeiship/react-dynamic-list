@@ -9,7 +9,7 @@ export interface ListOptions<T> {
   defaults: () => T;
 }
 
-export function useListContext<T = unknown>(name: string, options?: ListOptions<T>): ListApi<T> {
+export function useCommand<T = unknown>(name: string, options?: ListOptions<T>): ListApi<T> {
   const [change, setChange] = useState<ChangeEvent<T> | null>(null);
 
   useEffect(() => subscribe(name, (action, index) => setChange({ action, data: getList<T>(name), index })), [name]);
@@ -52,5 +52,8 @@ export function useListContext<T = unknown>(name: string, options?: ListOptions<
   const canAdd = max === undefined || list.length < max;
   const canRemove = min === undefined || list.length > min;
 
-  return { list, change, add, remove, update, reset, canAdd, canRemove };
+  return {
+    state: { list, change, canAdd, canRemove },
+    actions: { add, remove, update, reset },
+  };
 }
