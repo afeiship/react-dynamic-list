@@ -51,6 +51,28 @@ describe('DynamicList', () => {
     expect(screen.getByText('No items')).toBeInTheDocument();
   });
 
+  it('should load data prop into store on initial render', () => {
+    const initialData: Item[] = [
+      { id: 1, title: 'Alpha' },
+      { id: 2, title: 'Beta' },
+      { id: 3, title: 'Gamma' },
+    ];
+    render(
+      <DynamicList<Item>
+        name="dl-test"
+        defaults={defaults}
+        data={initialData}
+        slots={{
+          item: ({ item }) => <div>{item.title}</div>,
+        }}
+      />,
+    );
+    expect(screen.getByText('Alpha')).toBeInTheDocument();
+    expect(screen.getByText('Beta')).toBeInTheDocument();
+    expect(screen.getByText('Gamma')).toBeInTheDocument();
+    expect(getList('dl-test')).toEqual(initialData);
+  });
+
   it('should sync data prop into store when data changes', () => {
     const { rerender } = render(
       <DynamicList<Item>
