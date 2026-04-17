@@ -16,7 +16,7 @@ export interface DynamicListProps<T = unknown> extends Omit<ReactListProps<T>, '
 export function DynamicList<T = unknown>(props: DynamicListProps<T>) {
   const { name, data, min, max, defaults, onChange, keyExtractor = INDEX, ...rest } = props;
   const { list, change, reset } = useListContext<T>(name, { min, max, defaults });
-  const dataRef = useRef(data);
+  const dataRef = useRef<T[] | undefined>(undefined);
   const onChangeRef = useRef(onChange);
 
   useEffect(() => {

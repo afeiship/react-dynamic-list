@@ -1,10 +1,11 @@
 import { DynamicList } from '@jswork/react-dynamic-list/src/main';
 import { ItemSlot } from './components/item-slot';
 import { EmptySlot } from './components/empty-slot';
+import { PrefillItemSlot } from './components/prefill-item-slot';
 import { ListControls } from './components/list-controls';
 import { SharedView } from './components/shared-view';
 import { useChangeLog } from './components/change-log';
-import { initialData, defaults } from './components/types';
+import { initialData, defaults, prefillInitialData, prefillDefaults } from './components/types';
 import type { Item } from './components/types';
 import { TodoItem } from './components/todo/todo-item';
 import { TodoEmpty } from './components/todo/todo-empty';
@@ -50,6 +51,19 @@ export default function App() {
               slots={{ item: ItemSlot, empty: EmptySlot }}
             />
             <ListControls />
+          </div>
+        </div>
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <h2 className="card-title">With Initial Values</h2>
+            <DynamicList<Item>
+              name="prefill-list"
+              data={prefillInitialData}
+              defaults={prefillDefaults}
+              max={8}
+              slots={{ item: PrefillItemSlot, empty: EmptySlot }}
+              onChange={e => console.log('change prefill: ', e.data)}
+            />
           </div>
         </div>
         <div className="card bg-base-100 shadow-xl">
