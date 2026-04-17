@@ -12,6 +12,9 @@ import { TodoEmpty } from './components/todo/todo-empty';
 import { TodoControls } from './components/todo/todo-controls';
 import { initialData as todoInitialData, defaults as todoDefaults } from './components/todo/types';
 import type { Todo } from './components/todo/types';
+import { StringItem } from './components/string-list/string-item';
+import { StringEmpty } from './components/string-list/string-empty';
+import { StringControls, stringDefaults } from './components/string-list/string-controls';
 
 export default function App() {
   const { handleChange, LogView } = useChangeLog();
@@ -37,6 +40,20 @@ export default function App() {
                 console.log('change todo: ', e.data);
               }}
             />
+          </div>
+        </div>
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <h2 className="card-title">String List (必填校验)</h2>
+            <DynamicList<{ id: number; value: string }>
+              name="string-list"
+              data={[]}
+              defaults={stringDefaults}
+              max={10}
+              slots={{ item: StringItem, empty: StringEmpty }}
+              onChange={(e) => console.log('change string-list: ', e.data)}
+            />
+            <StringControls />
           </div>
         </div>
         <div className="card bg-base-100 shadow-xl">
