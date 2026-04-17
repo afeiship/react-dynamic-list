@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/main.tsx'],
+  entry: ['src/main.ts'],
   format: ['cjs', 'esm'],
   dts: true,
   clean: true,
@@ -13,7 +13,7 @@ export default defineConfig({
   splitting: true,
   target: 'es6',
   bundle: true,
-  // external: ['react', 'react-dom', 'classnames'],
+  external: ['react', 'react-dom', 'classnames', '@jswork/react-list'],
   loader: {
     '.svg': 'dataurl',
   },
