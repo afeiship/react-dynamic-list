@@ -6,6 +6,11 @@ import { SharedView } from './components/shared-view';
 import { useChangeLog } from './components/change-log';
 import { initialData, defaults } from './components/types';
 import type { Item } from './components/types';
+import { TodoItem } from './components/todo/todo-item';
+import { TodoEmpty } from './components/todo/todo-empty';
+import { TodoControls } from './components/todo/todo-controls';
+import { initialData as todoInitialData, defaults as todoDefaults } from './components/todo/types';
+import type { Todo } from './components/todo/types';
 
 export default function App() {
   const { handleChange, LogView } = useChangeLog();
@@ -17,7 +22,22 @@ export default function App() {
           <h1 className="text-2xl font-bold">React Dynamic List</h1>
           <span className="badge badge-warning">Build: {BUILD_TIME}</span>
         </div>
-
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <h2 className="card-title">Todo Demo</h2>
+            <TodoControls />
+            <DynamicList<Todo>
+              name="pg-todo"
+              data={todoInitialData}
+              defaults={todoDefaults}
+              max={8}
+              slots={{ item: TodoItem, empty: TodoEmpty }}
+              onChange={e => {
+                console.log('change todo: ', e.data);
+              }}
+            />
+          </div>
+        </div>
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title">Dynamic List</h2>
@@ -32,14 +52,12 @@ export default function App() {
             <ListControls />
           </div>
         </div>
-
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title text-sm">Shared State (same name="todos")</h2>
             <SharedView />
           </div>
         </div>
-
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title text-sm">Change Log</h2>
