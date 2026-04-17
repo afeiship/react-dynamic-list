@@ -1,0 +1,205 @@
+# React Dynamic List
+
+> A React component for managing dynamic lists with shared state, event-driven updates, and slot-based rendering.
+
+## Installation
+
+```bash
+npm install @jswork/react-dynamic-list @jswork/react-list
+```
+
+## Features
+
+- Global store: list data lives outside React, shared across components by name
+- Event-driven: pub/sub system propagates changes to all subscribers
+- Slot-based rendering: customize item and empty states via `slots`
+- Constraints: `min`/`max` bounds with `canAdd`/`canRemove` flags
+- Change tracking: every mutation emits a `ChangeEvent` with action, data, and index
+- SSR-safe: works with server-side rendering (no `window` dependency)
+
+## Components
+
+### `<DynamicList>`
+
+The main declarative component. Wraps `@jswork/react-list` with list management.
+
+```tsx
+import { DynamicList } from '@jswork/react-dynamic-list';
+import type { ChangeEvent } from '@jswork/react-dynamic-list';
+```
+
+**Props:**
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `name` | `string` | Yes | Unique key for the shared store |
+| `defaults` | `() => T` | Yes | Factory function for new items |
+| `data` | `T[]` | No | Initial data (syncs on change) |
+| `min` | `number` | No | Minimum list length |
+| `max` | `number` | No | Maximum list length |
+| `onChange` | `(event: ChangeEvent<T>) => void` | No | Callback on every mutation |
+| `slots` | `{ item: ComponentType; empty?: ComponentType }` | Yes | Slot components for rendering |
+| `keyExtractor` | `(item: T, index: number) => string \| number` | No | Key function (defaults to `INDEX`) |
+| `...rest` | `ReactListProps<T>` | No | Any prop from `@jswork/react-list` |
+
+**Usage:**
+
+```tsx
+interface Todo {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+const defaults = (): Todo => ({ id: crypto.randomUUID(), title: '', done: false });
+
+<DynamicList<Todo>
+  name="todos"
+  defaults={defaults}
+  data={[{ id: '1', title: 'Hello', done: false }]}
+  max={10}
+  onChange={(e) => console.log(e.action, e.index, e.data)}
+  slots={{
+    item: ({ item, index }) => <div>{item.title}</div>,
+    empty: () => <div>No items</div>
+  }}
+/>
+```
+
+### `useListContext`
+
+Hook for imperative list access. Shares the same store as `<DynamicList>` by name.
+
+```tsx
+import { useListContext } from '@jswork/react-dynamic-list';
+```
+
+**Signature:**
+
+```ts
+function useListContext<T>(name: string, options?: ListOptions<T>): ListApi<T>
+```
+
+**Options (`ListOptions<T>`):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `defaults` | `() => T` | Yes | Factory function for new items |
+| `min` | `number` | No | Minimum list length |
+| `max` | `number` | No | Maximum list length |
+
+**Return (`ListApi<T>`):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `list` | `T[]` | Current list data |
+| `change` | `ChangeEvent<T> \| null` | Last change event |
+| `add` | `() => void` | Append item via `defaults()` |
+| `remove` | `(index: number) => void` | Remove item at index |
+| `update` | `(index: number, updater: (prev: T) => T) => void` | Update item at index |
+| `reset` | `(items: T[]) => void` | Replace entire list |
+| `canAdd` | `boolean` | `false` when list length >= `max` |
+| `canRemove` | `boolean` | `false` when list length <= `min` |
+
+**Usage:**
+
+```tsx
+function MyControls() {
+  const { add, remove, list, canAdd, canRemove } = useListContext<Item>(
+    'todos',
+    { max: 5, defaults: () => ({ id: crypto.randomUUID(), title: '', done: false }) }
+  );
+
+  return (
+    <>
+      <button disabled={!canAdd} onClick={add}>Add</button>
+      <button disabled={!canRemove} onClick={() => remove(list.length - 1)}>Remove Last</button>
+    </>
+  );
+}
+```
+
+## Types
+
+```ts
+type ListAction = 'add' | 'remove' | 'update' | 'reset';
+
+interface ChangeEvent<T> {
+  action: ListAction;
+  data: T[];       // full list after mutation
+  index?: number;  // affected index (undefined for reset)
+}
+```
+
+## Store Utilities
+
+Direct store access, useful for testing or non-React code.
+
+```ts
+import { getList, setList, addToList, removeAt, updateAt } from '@jswork/react-dynamic-list';
+```
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `getList` | `<T>(name: string) => T[]` | Read list from store |
+| `setList` | `(name: string, items: unknown[]) => void` | Replace list and notify |
+| `addToList` | `<T>(name: string, item: T) => void` | Append item and notify |
+| `removeAt` | `(name: string, index: number) => void` | Remove at index and notify |
+| `updateAt` | `<T>(name: string, index: number, updater: (prev: T) => T) => void` | Update at index and notify |
+
+## Event Utilities
+
+Subscribe to list mutations at the bus level.
+
+```ts
+import { subscribe, emitChange } from '@jswork/react-dynamic-list';
+```
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `subscribe` | `(name: string, listener: Listener) => () => void` | Subscribe, returns unsubscribe |
+| `emitChange` | `(name: string, action: ListAction, index?: number) => void` | Emit change event |
+
+## Architecture
+
+```
+┌─────────────┐     ┌──────────┐     ┌──────────┐
+│ DynamicList  │────▶│  Store   │◀────│ useList  │
+│ (component)  │     │ (global) │     │ Context  │
+└─────────────┘     └────┬─────┘     └──────────┘
+                         │
+                    ┌────▼─────┐
+                    │  Event   │
+                    │ (pub/sub)│
+                    └──────────┘
+```
+
+- **Store**: Module-scoped `Map<string, unknown[]>` holding list data outside React tree
+- **Event**: Name-keyed pub/sub for reactive cross-component propagation
+- **useListContext**: Bridge between store/events and React state via `useState`
+- **DynamicList**: Declarative wrapper combining `useListContext` + `@jswork/react-list`
+
+All components using the same `name` share the same list data and react to each other's mutations.
+
+## File Structure
+
+```
+packages/lib/src/
+├── main.ts              # Barrel exports
+├── types.ts             # ListAction, ChangeEvent, ListApi, ListConstraints
+├── store.ts             # Global in-memory store (getList, setList, addToList, removeAt, updateAt)
+├── event.ts             # Pub/sub system (subscribe, emitChange)
+├── use-list-context.ts  # React hook (useListContext)
+└── dynamic-list.tsx     # DynamicList component
+```
+
+## Notes for AI Agents
+
+- `defaults` is required in both `<DynamicList>` and `useListContext` — it is a factory function `() => T`, not a value
+- `name` is the shared-state key — all hooks/components with the same `name` see the same list
+- `ChangeEvent.data` contains the **full list after mutation**, not the delta
+- `ChangeEvent.index` is `undefined` for `reset` actions
+- `keyExtractor` defaults to `INDEX` (index-based key) — use a custom extractor for stable keys when items reorder
+- The store is global and lives for the module's lifetime — call `setList(name, [])` in test `beforeEach` to reset
+- `min`/`max` are soft constraints enforced at the hook level — direct store calls bypass them
+- This package depends on `@jswork/react-list` as a peer dependency for the rendering layer
