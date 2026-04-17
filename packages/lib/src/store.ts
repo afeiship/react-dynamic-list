@@ -20,7 +20,9 @@ export function addToList<T>(name: string, item: T): void {
 }
 
 export function updateAt<T>(name: string, index: number, updater: (prev: T) => T): void {
-  const next = [...getList<T>(name)];
+  const list = getList<T>(name);
+  if (index < 0 || index >= list.length) return;
+  const next = [...list];
   next[index] = updater(next[index]);
   store.set(name, next);
 }
