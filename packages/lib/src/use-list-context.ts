@@ -1,25 +1,31 @@
-import { useCallback, useEffect, useState } from "react";
-import { getList, addToList, removeAt, setList, updateAt } from "./store";
-import { subscribe, emitChange } from "./event";
-import type { ChangeEvent, ListApi, ListConstraints } from "./types";
+import { useCallback, useEffect, useState } from 'react';
+import { getList, addToList, removeAt, setList, updateAt } from './store';
+import { subscribe, emitChange } from './event';
+import type { ChangeEvent, ListApi } from './types';
 
-export function useListContext<T = unknown>(name: string, constraints?: ListConstraints<T>): ListApi<T> {
+export interface ListOptions<T> {
+  min?: number;
+  max?: number;
+  defaults: () => T;
+}
+
+export function useListContext<T = unknown>(name: string, options?: ListOptions<T>): ListApi<T> {
   const [change, setChange] = useState<ChangeEvent<T> | null>(null);
 
   useEffect(() => subscribe(name, (action, index) => setChange({ action, data: getList<T>(name), index })), [name]);
 
   const add = useCallback(() => {
-    const item = constraints?.defaults();
+    const item = options?.defaults();
     if (item === undefined) return;
     const index = getList<T>(name).length;
     addToList(name, item);
-    emitChange(name, "add", index);
-  }, [name, constraints]);
+    emitChange(name, 'add', index);
+  }, [name, options]);
 
   const update = useCallback(
     (index: number, updater: (prev: T) => T) => {
       updateAt(name, index, updater);
-      emitChange(name, "update", index);
+      emitChange(name, 'update', index);
     },
     [name],
   );
@@ -27,7 +33,7 @@ export function useListContext<T = unknown>(name: string, constraints?: ListCons
   const remove = useCallback(
     (index: number) => {
       removeAt(name, index);
-      emitChange(name, "remove", index);
+      emitChange(name, 'remove', index);
     },
     [name],
   );
@@ -35,14 +41,14 @@ export function useListContext<T = unknown>(name: string, constraints?: ListCons
   const reset = useCallback(
     (items: T[]) => {
       setList(name, items);
-      emitChange(name, "reset");
+      emitChange(name, 'reset');
     },
     [name],
   );
 
   const list = getList<T>(name);
-  const max = constraints?.max;
-  const min = constraints?.min;
+  const max = options?.max;
+  const min = options?.min;
   const canAdd = max === undefined || list.length < max;
   const canRemove = min === undefined || list.length > min;
 
