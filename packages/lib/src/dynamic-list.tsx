@@ -4,21 +4,21 @@ import { useListContext } from "./use-list-context";
 import type { ChangeEvent, ListConstraints } from "./types";
 import React from 'react';
 
-export interface InteractiveProps<T = unknown> extends Omit<ReactListProps<T>, "data"> {
+export interface DynamicListProps<T = unknown> extends Omit<ReactListProps<T>, "data"> {
   name: string;
   data?: T[];
   onChange?: (event: ChangeEvent<T>) => void;
   constraints?: ListConstraints<T>;
 }
 
-export function Interactive<T = unknown>({
+export function DynamicList<T = unknown>({
   name,
   data,
   onChange,
   constraints,
   keyExtractor = SELF,
   ...rest
-}: InteractiveProps<T>) {
+}: DynamicListProps<T>) {
   const { list, change, reset } = useListContext<T>(name, constraints);
   const dataRef = useRef(data);
   const onChangeRef = useRef(onChange);
