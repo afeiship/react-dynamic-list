@@ -1,14 +1,20 @@
 {
-  "name": "@feizheng/antd-form-notes",
+  "name": "@jswork/react-dynamic-list",
   "version": "1.0.0",
-  "description": "Antd form notes.",
-  "homepage": "https://github.com/afeiship/antd-form-notes",
-  "author": {
-    "name": "afeiship",
-    "email": "1290657123@qq.com"
-  },
-  "license": "MIT",
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org"
+  "description": "React hook for reactive dynamic list state across components.",
+  "homepage": "https://js.work",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "cd packages/example && yarn run dev",
+    "predocs": "rm -rf docs && node scripts/markdown.js",
+    "docs": "cd packages/example && yarn run build",
+    "postdocs": "cp -R packages/example/dist docs",
+    "preln:build": "yarn run docs",
+    "ln:build": "cd packages/lib && yarn run build",
+    "ln:publish": "cd packages/lib && yarn run release"
   }
 }
