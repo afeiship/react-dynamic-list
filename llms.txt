@@ -154,35 +154,6 @@ interface ListApi<T> {
 }
 ```
 
-## Store Utilities
-
-Direct store access, useful for testing or non-React code.
-
-```ts
-import { getList, setList, addToList, removeAt, updateAt } from '@jswork/react-dynamic-list';
-```
-
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `getList` | `<T>(name: string) => T[]` | Read list from store |
-| `setList` | `(name: string, items: unknown[]) => void` | Replace list and notify |
-| `addToList` | `<T>(name: string, item: T) => void` | Append item and notify |
-| `removeAt` | `(name: string, index: number) => void` | Remove at index and notify |
-| `updateAt` | `<T>(name: string, index: number, updater: (prev: T) => T) => void` | Update at index and notify |
-
-## Event Utilities
-
-Subscribe to list mutations at the bus level.
-
-```ts
-import { subscribe, emitChange } from '@jswork/react-dynamic-list';
-```
-
-| Function | Signature | Description |
-|----------|-----------|-------------|
-| `subscribe` | `(name: string, listener: Listener) => () => void` | Subscribe, returns unsubscribe |
-| `emitChange` | `(name: string, action: ListAction, index?: number) => void` | Emit change event |
-
 ## Architecture
 
 ```
@@ -197,8 +168,8 @@ import { subscribe, emitChange } from '@jswork/react-dynamic-list';
                     └──────────┘
 ```
 
-- **Store**: Module-scoped `Map<string, unknown[]>` holding list data outside React tree
-- **Event**: Name-keyed pub/sub for reactive cross-component propagation
+- **Store** (internal): Module-scoped `Map<string, unknown[]>` holding list data outside React tree
+- **Event** (internal): Name-keyed pub/sub for reactive cross-component propagation
 - **useCommand**: Bridge between store/events and React state via `useState`, returns `{ state, actions }`
 - **DynamicList**: Declarative wrapper combining `useCommand` + `@jswork/react-list`
 
@@ -224,6 +195,7 @@ packages/lib/src/
 - `ChangeEvent.data` contains the **full list after mutation**, not the delta
 - `ChangeEvent.index` is `undefined` for `reset` actions
 - `keyExtractor` defaults to `INDEX` (index-based key) — use a custom extractor for stable keys when items reorder
-- The store is global and lives for the module's lifetime — call `setList(name, [])` in test `beforeEach` to reset
+- The store is global and lives for the module's lifetime — tests can import `setList` directly from `store.ts` to reset in `beforeEach`
 - `min`/`max` are soft constraints enforced at the hook level — direct store calls bypass them
+- Store and Event modules are internal — not exported from the public API. Tests import directly from source files
 - This package depends on `@jswork/react-list` as a peer dependency for the rendering layer

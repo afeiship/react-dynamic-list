@@ -4,12 +4,12 @@
  * 针对源码分析中发现的潜在问题编写的测试用例。
  *
  * 场景覆盖:
- * 1. store.updateAt 无越界保护 — index 越界时 updater 收到 undefined，静默产生 bad data
+ * 1. store.updateAt 越界保护 (internal store API)
  * 2. useCommand actions 因 options 引用不稳定导致 useCallback 失效
  * 3. useCommand state.list 每次渲染返回新引用（非响应式）
  * 4. DynamicList data sync 循环 — reset → emitChange → subscribe → 重复 reset
  * 5. DynamicList 与外部 useCommand 双订阅导致连锁渲染
- * 6. subscribe cleanup 已修复：返回 void 且清理空 listener set
+ * 6. subscribe cleanup (internal event API) — 返回 void 且清理空 listener set
  */
 
 // @vitest-environment jsdom
