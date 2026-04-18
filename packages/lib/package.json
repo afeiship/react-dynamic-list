@@ -1,9 +1,9 @@
 {
   "name": "@jswork/react-dynamic-list",
-  "version": "1.0.6",
-  "main": "dist/main.cjs.js",
-  "module": "dist/main.esm.js",
-  "types": "dist/main.d.ts",
+  "version": "1.0.7",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
   "description": "React hook for reactive dynamic list state across components.",
   "homepage": "https://js.work",
   "license": "MIT",
