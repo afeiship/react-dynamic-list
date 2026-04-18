@@ -26,3 +26,12 @@ export function updateAt<T>(name: string, index: number, updater: (prev: T) => T
   next[index] = updater(next[index]);
   store.set(name, next);
 }
+
+export function moveAt(name: string, from: number, to: number): void {
+  const list = getList(name);
+  if (from < 0 || from >= list.length || to < 0 || to >= list.length || from === to) return;
+  const next = [...list];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  store.set(name, next);
+}

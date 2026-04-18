@@ -1,4 +1,4 @@
-export type ListAction = "add" | "remove" | "update" | "reset";
+export type ListAction = "add" | "remove" | "update" | "set" | "up" | "down";
 
 export interface ChangeEvent<T> {
   action: ListAction;
@@ -17,7 +17,9 @@ export interface ListActions<T> {
   add: () => void;
   remove: (index: number) => void;
   update: (index: number, updater: (prev: T) => T) => void;
-  reset: (items: T[]) => void;
+  set: (items: T[]) => void;
+  up: (index: number) => void;
+  down: (index: number) => void;
 }
 
 export interface ListApi<T> {

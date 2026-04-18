@@ -59,7 +59,7 @@ describe('useCommand', () => {
   it('should reset the list', () => {
     setList('test', [{ value: 1 }, { value: 2 }]);
     const { result } = renderHook(() => useCommand('test'));
-    act(() => result.current.actions.reset([{ value: 99 }]));
+    act(() => result.current.actions.set([{ value: 99 }]));
     expect(result.current.state.list).toEqual([{ value: 99 }]);
   });
 
@@ -89,13 +89,13 @@ describe('useCommand', () => {
     });
   });
 
-  it('should track reset change event', () => {
+  it('should track set change event', () => {
     const { result } = renderHook(() =>
       useCommand('test', { defaults: () => ({ value: 0 }) }),
     );
-    act(() => result.current.actions.reset([{ value: 1 }, { value: 2 }]));
+    act(() => result.current.actions.set([{ value: 1 }, { value: 2 }]));
     expect(result.current.state.change).toEqual({
-      action: 'reset',
+      action: 'set',
       data: [{ value: 1 }, { value: 2 }],
       index: undefined,
     });
@@ -165,7 +165,7 @@ describe('useCommand shared state', () => {
     const { result: hook1 } = renderHook(() => useCommand('shared-test'));
     const { result: hook2 } = renderHook(() => useCommand('shared-test'));
 
-    act(() => hook1.current.actions.reset([{ value: 42 }]));
+    act(() => hook1.current.actions.set([{ value: 42 }]));
     expect(getList('shared-test')).toEqual([{ value: 42 }]);
     expect(hook2.current.state.list).toEqual([{ value: 42 }]);
   });

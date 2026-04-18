@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getList, addToList, removeAt, setList, updateAt } from './store';
+import { getList, addToList, removeAt, setList, updateAt, moveAt } from './store';
 import { subscribe, emitChange } from './event';
 import type { ChangeEvent, ListApi } from './types';
 
@@ -49,10 +49,26 @@ export function useCommand<T = unknown>(name: string, options?: ListOptions<T>):
     [name],
   );
 
-  const reset = useCallback(
+  const set = useCallback(
     (items: T[]) => {
       setList(name, items);
-      emitChange(name, 'reset');
+      emitChange(name, 'set');
+    },
+    [name],
+  );
+
+  const up = useCallback(
+    (index: number) => {
+      moveAt(name, index, index - 1);
+      emitChange(name, 'up', index);
+    },
+    [name],
+  );
+
+  const down = useCallback(
+    (index: number) => {
+      moveAt(name, index, index + 1);
+      emitChange(name, 'down', index);
     },
     [name],
   );
@@ -64,6 +80,6 @@ export function useCommand<T = unknown>(name: string, options?: ListOptions<T>):
 
   return {
     state: { list, change, canAdd, canRemove },
-    actions: { add, remove, update, reset },
+    actions: { add, remove, update, set, up, down },
   };
 }

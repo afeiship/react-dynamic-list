@@ -18,16 +18,16 @@ export function DynamicList<T = unknown>(props: DynamicListProps<T>) {
   const { name, data, min, max, defaults, onChange, keyExtractor = INDEX, ...rest } = props;
   const { state, actions } = useCommand<T>(name, { min, max, defaults });
   const { list, change } = state;
-  const { reset } = actions;
+  const { set } = actions;
   const dataRef = useRef<T[] | undefined>(undefined);
   const onChangeRef = useRef(onChange);
 
   useEffect(() => {
     if (data && !equal(data, dataRef.current)) {
-      reset(data);
+      set(data);
     }
     dataRef.current = data;
-  }, [data, reset]);
+  }, [data, set]);
 
   onChangeRef.current = onChange;
 

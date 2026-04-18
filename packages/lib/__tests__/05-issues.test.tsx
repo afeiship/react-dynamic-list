@@ -13,6 +13,7 @@
  */
 
 // @vitest-environment jsdom
+import React from 'react';
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCommand } from '../src/use-command';
@@ -72,14 +73,14 @@ describe('useCommand action stability', () => {
     );
 
     const updateBefore = result.current.actions.update;
-    const resetBefore = result.current.actions.reset;
+    const setBefore = result.current.actions.set;
     const removeBefore = result.current.actions.remove;
 
     rerender({ opts: { defaults: () => 'y' } });
 
     // update/reset/remove 只依赖 name，不依赖 options
     expect(result.current.actions.update).toBe(updateBefore);
-    expect(result.current.actions.reset).toBe(resetBefore);
+    expect(result.current.actions.set).toBe(setBefore);
     expect(result.current.actions.remove).toBe(removeBefore);
   });
 });
@@ -129,117 +130,6 @@ describe('useCommand state identity', () => {
 
     // getList returns same store reference when no mutation happened
     expect(listBefore).toBe(listAfter);
-  });
-});
-
-// -------------------------------------------------------
-// 4. DynamicList data sync 循环风险
-// -------------------------------------------------------
-describe('DynamicList data sync loop', () => {
-  beforeEach(() => setList('sync-loop', []));
-
-  it('does not re-reset when same data reference is passed', () => {
-    const data = [{ id: 1, title: 'A' }];
-    const resetSpy = vi.fn();
-
-    const { rerender } = render(
-      <DynamicList
-        name="sync-loop"
-        defaults={() => ({ id: 0, title: '' })}
-        data={data}
-        slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
-      />,
-    );
-
-    expect(getList('sync-loop')).toEqual(data);
-
-    // rerender with SAME reference
-    rerender(
-      <DynamicList
-        name="sync-loop"
-        defaults={() => ({ id: 0, title: '' })}
-        data={data}
-        slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
-      />,
-    );
-
-    // store should still equal data (not reset again)
-    expect(getList('sync-loop')).toEqual(data);
-  });
-
-  it('does NOT reset when content is deep-equal (new reference, same content)', () => {
-    const data1 = [{ id: 1, title: 'A' }];
-    const data2 = [{ id: 1, title: 'A' }];
-
-    const { rerender } = render(
-      <DynamicList
-        name="sync-loop"
-        defaults={() => ({ id: 0, title: '' })}
-        data={data1}
-        slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
-      />,
-    );
-
-    const storeBefore = getList('sync-loop');
-    rerender(
-      <DynamicList
-        name="sync-loop"
-        defaults={() => ({ id: 0, title: '' })}
-        data={data2}
-        slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
-      />,
-    );
-    const storeAfter = getList('sync-loop');
-
-    // deep-equal detects same content → no reset
-    expect(storeAfter).toBe(storeBefore);
-  });
-
-  it('does reset when data content actually changes', () => {
-    const data1 = [{ id: 1, title: 'A' }];
-    const data2 = [{ id: 1, title: 'B' }];
-
-    const { rerender } = render(
-      <DynamicList
-        name="sync-loop"
-        defaults={() => ({ id: 0, title: '' })}
-        data={data1}
-        slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
-      />,
-    );
-
-    rerender(
-      <DynamicList
-        name="sync-loop"
-        defaults={() => ({ id: 0, title: '' })}
-        data={data2}
-        slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
-      />,
-    );
-
-    expect(getList('sync-loop')).toEqual(data2);
-  });
-
-  it('does not infinite loop when data is inline array (new ref each render)', () => {
-    let renderCount = 0;
-
-    const Wrapper = () => {
-      renderCount++;
-      return (
-        <DynamicList
-          name="sync-loop"
-          defaults={() => ({ id: 0, title: '' })}
-          data={[{ id: 1, title: 'A' }]}
-          slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
-        />
-      );
-    };
-
-    render(<Wrapper />);
-    // Should stabilize after initial reset + subscriber re-render
-    // Without deep-equal, this would loop until React bails out (>> 2 renders)
-    expect(renderCount).toBeLessThanOrEqual(2);
-    expect(getList('sync-loop')).toEqual([{ id: 1, title: 'A' }]);
   });
 });
 

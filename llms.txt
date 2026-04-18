@@ -101,7 +101,9 @@ Returns `{ state, actions }` — state is reactive data, actions are imperative 
 | `actions.add` | `() => void` | Append item via `defaults()` |
 | `actions.remove` | `(index: number) => void` | Remove item at index |
 | `actions.update` | `(index: number, updater: (prev: T) => T) => void` | Update item at index |
-| `actions.reset` | `(items: T[]) => void` | Replace entire list |
+| `actions.set` | `(items: T[]) => void` | Replace entire list |
+| `actions.up` | `(index: number) => void` | Move item at index up (swap with previous) |
+| `actions.down` | `(index: number) => void` | Move item at index down (swap with next) |
 
 **Usage:**
 
@@ -126,12 +128,12 @@ function MyControls() {
 ## Types
 
 ```ts
-type ListAction = 'add' | 'remove' | 'update' | 'reset';
+type ListAction = 'add' | 'remove' | 'update' | 'set' | 'up' | 'down';
 
 interface ChangeEvent<T> {
   action: ListAction;
   data: T[];       // full list after mutation
-  index?: number;  // affected index (undefined for reset)
+  index?: number;  // affected index (undefined for set)
 }
 
 interface ListState<T> {
@@ -145,7 +147,9 @@ interface ListActions<T> {
   add: () => void;
   remove: (index: number) => void;
   update: (index: number, updater: (prev: T) => T) => void;
-  reset: (items: T[]) => void;
+  set: (items: T[]) => void;
+  up: (index: number) => void;
+  down: (index: number) => void;
 }
 
 interface ListApi<T> {
@@ -191,9 +195,9 @@ packages/lib/src/
 
 - `defaults` is required in both `<DynamicList>` and `useCommand` — it is a factory function `() => T`, not a value
 - `name` is the shared-state key — all hooks/components with the same `name` see the same list
-- `useCommand` returns `{ state, actions }` — state holds reactive data (`list`, `change`, `canAdd`, `canRemove`), actions hold imperative methods (`add`, `remove`, `update`, `reset`)
+- `useCommand` returns `{ state, actions }` — state holds reactive data (`list`, `change`, `canAdd`, `canRemove`), actions hold imperative methods (`add`, `remove`, `update`, `set`, `up`, `down`)
 - `ChangeEvent.data` contains the **full list after mutation**, not the delta
-- `ChangeEvent.index` is `undefined` for `reset` actions
+- `ChangeEvent.index` is `undefined` for `set` actions
 - `keyExtractor` defaults to `INDEX` (index-based key) — use a custom extractor for stable keys when items reorder
 - The store is global and lives for the module's lifetime — tests can import `setList` directly from `store.ts` to reset in `beforeEach`
 - `min`/`max` are soft constraints enforced at the hook level — direct store calls bypass them
