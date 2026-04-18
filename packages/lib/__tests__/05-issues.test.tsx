@@ -167,7 +167,7 @@ describe('DynamicList data sync loop', () => {
     expect(getList('sync-loop')).toEqual(data);
   });
 
-  it('does reset when data reference changes (even if content is same)', () => {
+  it('does NOT reset when content is deep-equal (new reference, same content)', () => {
     const data1 = [{ id: 1, title: 'A' }];
     const data2 = [{ id: 1, title: 'A' }];
 
@@ -191,9 +191,55 @@ describe('DynamicList data sync loop', () => {
     );
     const storeAfter = getList('sync-loop');
 
-    // content same but reference changed → reset triggered
-    expect(storeBefore).not.toBe(storeAfter);
-    expect(storeAfter).toEqual(data2);
+    // deep-equal detects same content → no reset
+    expect(storeAfter).toBe(storeBefore);
+  });
+
+  it('does reset when data content actually changes', () => {
+    const data1 = [{ id: 1, title: 'A' }];
+    const data2 = [{ id: 1, title: 'B' }];
+
+    const { rerender } = render(
+      <DynamicList
+        name="sync-loop"
+        defaults={() => ({ id: 0, title: '' })}
+        data={data1}
+        slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
+      />,
+    );
+
+    rerender(
+      <DynamicList
+        name="sync-loop"
+        defaults={() => ({ id: 0, title: '' })}
+        data={data2}
+        slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
+      />,
+    );
+
+    expect(getList('sync-loop')).toEqual(data2);
+  });
+
+  it('does not infinite loop when data is inline array (new ref each render)', () => {
+    let renderCount = 0;
+
+    const Wrapper = () => {
+      renderCount++;
+      return (
+        <DynamicList
+          name="sync-loop"
+          defaults={() => ({ id: 0, title: '' })}
+          data={[{ id: 1, title: 'A' }]}
+          slots={{ item: ({ item }: any) => <div>{item.title}</div> }}
+        />
+      );
+    };
+
+    render(<Wrapper />);
+    // Should stabilize after initial reset + subscriber re-render
+    // Without deep-equal, this would loop until React bails out (>> 2 renders)
+    expect(renderCount).toBeLessThanOrEqual(2);
+    expect(getList('sync-loop')).toEqual([{ id: 1, title: 'A' }]);
   });
 });
 

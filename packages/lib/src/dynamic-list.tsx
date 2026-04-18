@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { ReactList, type ReactListProps, INDEX } from '@jswork/react-list';
 import { useCommand } from './use-command';
 import type { ChangeEvent } from './types';
+import equal from 'fast-deep-equal';
 import React from 'react';
 
 export interface DynamicListProps<T = unknown> extends Omit<ReactListProps<T>, 'data'> {
@@ -22,7 +23,7 @@ export function DynamicList<T = unknown>(props: DynamicListProps<T>) {
   const onChangeRef = useRef(onChange);
 
   useEffect(() => {
-    if (data && data !== dataRef.current) {
+    if (data && !equal(data, dataRef.current)) {
       reset(data);
     }
     dataRef.current = data;
