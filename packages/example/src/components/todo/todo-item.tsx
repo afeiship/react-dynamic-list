@@ -1,4 +1,4 @@
-import { useCommand } from '@jswork/react-dynamic-list/src/main';
+import { useCommand } from '@jswork/react-dynamic-list';
 import type { Todo } from './types';
 
 export const TodoItem = ({ item, index }: { item: Todo; index: number }) => {

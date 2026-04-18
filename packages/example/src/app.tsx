@@ -1,4 +1,4 @@
-import { DynamicList } from '@jswork/react-dynamic-list/src/main';
+import { DynamicList } from '@jswork/react-dynamic-list';
 import { TodoItem } from './components/todo/todo-item';
 import { TodoEmpty } from './components/todo/todo-empty';
 import { TodoControls } from './components/todo/todo-controls';

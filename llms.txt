@@ -208,7 +208,7 @@ All components using the same `name` share the same list data and react to each 
 
 ```
 packages/lib/src/
-├── main.ts              # Barrel exports
+├── index.ts              # Barrel exports
 ├── types.ts             # ListAction, ChangeEvent, ListApi, ListState, ListActions
 ├── store.ts             # Global in-memory store (getList, setList, addToList, removeAt, updateAt)
 ├── event.ts             # Pub/sub system (subscribe, emitChange)
