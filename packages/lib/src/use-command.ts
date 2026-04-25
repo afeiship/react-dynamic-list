@@ -27,7 +27,7 @@ export function useCommand<T = unknown>(name: string, options?: ListOptions<T>):
 
   const add = useCallback(() => {
     const item = optionsRef.current?.defaults();
-    if (item === undefined) return;
+    if (item === undefined) return console.warn('defaults is required');
     const index = getList<T>(name).length;
     addToList(name, item);
     emitChange(name, 'add', index);
