@@ -1,21 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getList, addToList, removeAt, setList, updateAt, moveAt } from './store';
 import { subscribe, emitChange } from './event';
+import { getOptions } from './registry';
 import type { ChangeEvent, ListApi } from './types';
 
-export interface ListOptions<T> {
-  min?: number;
-  max?: number;
-  defaults: () => T;
-}
+export type { ListOptions } from './registry';
 
-export function useCommand<T = unknown>(name: string, options?: ListOptions<T>): ListApi<T> {
+export function useCommand<T = unknown>(name: string): ListApi<T> {
   const [change, setChange] = useState<ChangeEvent<T> | null>(null);
   const [list, setListState] = useState<T[]>(() => getList<T>(name));
-
-  // keep options in ref so callbacks stay stable
-  const optionsRef = useRef(options);
-  optionsRef.current = options;
 
   useEffect(
     () => subscribe(name, (_action, _index) => {
@@ -26,7 +19,8 @@ export function useCommand<T = unknown>(name: string, options?: ListOptions<T>):
   );
 
   const add = useCallback(() => {
-    const item = optionsRef.current?.defaults();
+    const opts = getOptions<T>(name);
+    const item = opts?.defaults();
     if (item === undefined) return console.warn('defaults is required');
     const index = getList<T>(name).length;
     addToList(name, item);
@@ -73,13 +67,22 @@ export function useCommand<T = unknown>(name: string, options?: ListOptions<T>):
     [name],
   );
 
-  const max = options?.max;
-  const min = options?.min;
+  const get = useCallback(
+    (index?: number): T | T[] | undefined => {
+      const list = getList<T>(name);
+      return index === undefined ? list : list[index];
+    },
+    [name],
+  );
+
+  const opts = getOptions<T>(name);
+  const max = opts?.max;
+  const min = opts?.min;
   const canAdd = max === undefined || list.length < max;
   const canRemove = min === undefined || list.length > min;
 
   return {
     state: { list, change, canAdd, canRemove },
-    actions: { add, remove, update, set, up, down },
+    actions: { add, remove, update, set, up, down, get },
   };
 }

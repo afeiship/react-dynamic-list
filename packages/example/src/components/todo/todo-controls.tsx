@@ -1,9 +1,8 @@
 import { useCommand } from '@jswork/react-dynamic-list';
 import type { Todo } from './types';
-import { defaults } from './types';
 
 export const TodoControls = () => {
-  const { state, actions } = useCommand<Todo>('pg-todo', { defaults, max: 8 });
+  const { state, actions } = useCommand<Todo>('pg-todo');
   const { canAdd, list } = state;
   const { add } = actions;
   const remaining = list.filter((t) => !t.done).length;

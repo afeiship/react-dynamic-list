@@ -5,21 +5,25 @@
  *
  * 场景覆盖:
  * 1. store.updateAt 越界保护 (internal store API)
- * 2. useCommand actions 因 options 引用不稳定导致 useCallback 失效
- * 3. useCommand state.list 每次渲染返回新引用（非响应式）
- * 4. DynamicList data sync 循环 — reset → emitChange → subscribe → 重复 reset
- * 5. DynamicList 与外部 useCommand 双订阅导致连锁渲染
- * 6. subscribe cleanup (internal event API) — 返回 void 且清理空 listener set
+ * 2. useCommand actions 稳定性（options 通过 registerOptions 注册）
+ * 3. useCommand state 对象每次渲染返回新引用
+ * 4. DynamicList 与外部 useCommand 双订阅连锁
+ * 5. subscribe cleanup (internal event API)
  */
 
 // @vitest-environment jsdom
 import React from 'react';
-import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, render, renderHook } from '@testing-library/react';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { useCommand } from '../src/use-command';
+import { registerOptions, clearOptions } from '../src/registry';
 import { DynamicList } from '../src/dynamic-list';
 import { getList, setList, updateAt } from '../src/store';
 import { subscribe } from '../src/event';
+
+afterEach(() => {
+  clearOptions();
+});
 
 // -------------------------------------------------------
 // 1. store.updateAt 越界保护
@@ -44,41 +48,25 @@ describe('store.updateAt boundary', () => {
 });
 
 // -------------------------------------------------------
-// 2. useCommand actions 因 options 不稳定而重建
+// 2. useCommand actions 稳定性
 // -------------------------------------------------------
 describe('useCommand action stability', () => {
   beforeEach(() => setList('action-stability', []));
 
-  it('add callback is stable when options object reference changes (uses optionsRef)', () => {
-    const options1 = { defaults: () => 'x' };
-    const options2 = { defaults: () => 'x' };
-
-    const { result, rerender } = renderHook(
-      ({ opts }) => useCommand('action-stability', opts),
-      { initialProps: { opts: options1 } },
+  it('all action callbacks are stable across rerenders', () => {
+    registerOptions('action-stability', { defaults: () => 'x' });
+    const { result, rerender } = renderHook(() =>
+      useCommand('action-stability'),
     );
 
     const addBefore = result.current.actions.add;
-    rerender({ opts: options2 });
-    const addAfter = result.current.actions.add;
-
-    // add uses optionsRef, so it's stable across rerenders
-    expect(addBefore).toBe(addAfter);
-  });
-
-  it('update/reset/remove are stable regardless of options change', () => {
-    const { result, rerender } = renderHook(
-      ({ opts }) => useCommand('action-stability', opts),
-      { initialProps: { opts: { defaults: () => 'x' } } },
-    );
-
     const updateBefore = result.current.actions.update;
     const setBefore = result.current.actions.set;
     const removeBefore = result.current.actions.remove;
 
-    rerender({ opts: { defaults: () => 'y' } });
+    rerender();
 
-    // update/reset/remove 只依赖 name，不依赖 options
+    expect(result.current.actions.add).toBe(addBefore);
     expect(result.current.actions.update).toBe(updateBefore);
     expect(result.current.actions.set).toBe(setBefore);
     expect(result.current.actions.remove).toBe(removeBefore);
@@ -92,12 +80,12 @@ describe('useCommand state identity', () => {
   beforeEach(() => setList('state-identity', []));
 
   it('state object is a new reference on every render', () => {
+    registerOptions('state-identity', { defaults: () => 'x' });
     const { result, rerender } = renderHook(() =>
-      useCommand('state-identity', { defaults: () => 'x' }),
+      useCommand('state-identity'),
     );
 
     const stateBefore = result.current.state;
-    // trigger a re-render by acting
     act(() => result.current.actions.add());
     const stateAfter = result.current.state;
 
@@ -105,50 +93,46 @@ describe('useCommand state identity', () => {
   });
 
   it('state.list reference changes after mutation', () => {
+    registerOptions('state-identity', { defaults: () => 'x' });
     const { result } = renderHook(() =>
-      useCommand('state-identity', { defaults: () => 'x' }),
+      useCommand('state-identity'),
     );
 
     const listBefore = result.current.state.list;
     act(() => result.current.actions.add());
     const listAfter = result.current.state.list;
 
-    // setList creates a new array via [...items]
     expect(listBefore).not.toBe(listAfter);
     expect(listAfter).toEqual(['x']);
   });
 
   it('state.list reference is same when no mutation occurs', () => {
     const { result, rerender } = renderHook(() =>
-      useCommand('state-identity', { defaults: () => 'x' }),
+      useCommand('state-identity'),
     );
 
     const listBefore = result.current.state.list;
-    // re-render without mutation (force via options change)
     rerender();
     const listAfter = result.current.state.list;
 
-    // getList returns same store reference when no mutation happened
     expect(listBefore).toBe(listAfter);
   });
 });
 
 // -------------------------------------------------------
-// 5. DynamicList + 外部 useCommand 双订阅连锁
+// 4. DynamicList + 外部 useCommand 双订阅连锁
 // -------------------------------------------------------
 describe('DynamicList + external useCommand dual subscription', () => {
   beforeEach(() => setList('dual-sub', []));
 
-  it('external useCommand sees changes from DynamicList internal reset', () => {
+  it('external useCommand sees changes from DynamicList internal set', () => {
     const data = [{ id: 1, title: 'X' }];
 
     // Set up external hook first
-    const { result } = renderHook(() =>
-      useCommand('dual-sub', { defaults: () => ({ id: 0, title: '' }) }),
-    );
+    const { result } = renderHook(() => useCommand('dual-sub'));
     expect(result.current.state.list).toEqual([]);
 
-    // Render DynamicList — its data sync effect triggers reset
+    // Render DynamicList — registers options + triggers data sync
     render(
       <DynamicList
         name="dual-sub"
@@ -158,44 +142,24 @@ describe('DynamicList + external useCommand dual subscription', () => {
       />,
     );
 
-    // DynamicList reset → emitChange → external subscriber → state update
-    // Both renderHook and render flush in their own act() scopes,
-    // so check the store (source of truth) and the hook state
     expect(getList('dual-sub')).toEqual(data);
     expect(result.current.state.list).toEqual(data);
   });
 
   it('both subscribers receive change events on mutation', () => {
-    const calls1: string[] = [];
-    const calls2: string[] = [];
-
-    const { result: hook1 } = renderHook(() =>
-      useCommand('dual-sub', { defaults: () => 'x' }),
-    );
-    const { result: hook2 } = renderHook(() =>
-      useCommand('dual-sub', { defaults: () => 'x' }),
-    );
-
-    // listen to changes
-    renderHook(() => {
-      const { state } = useCommand('dual-sub');
-      if (state.change) calls1.push(state.change.action);
-    });
-    renderHook(() => {
-      const { state } = useCommand('dual-sub');
-      if (state.change) calls2.push(state.change.action);
-    });
+    registerOptions('dual-sub', { defaults: () => 'x' });
+    const { result: hook1 } = renderHook(() => useCommand('dual-sub'));
+    const { result: hook2 } = renderHook(() => useCommand('dual-sub'));
 
     act(() => hook1.current.actions.add());
 
-    // Both hooks should reflect the change
     expect(hook1.current.state.list).toEqual(['x']);
     expect(hook2.current.state.list).toEqual(['x']);
   });
 });
 
 // -------------------------------------------------------
-// 6. subscribe cleanup
+// 5. subscribe cleanup
 // -------------------------------------------------------
 describe('subscribe cleanup', () => {
   it('unsubscribe function returns void', () => {
@@ -213,8 +177,6 @@ describe('subscribe cleanup', () => {
   it('removes empty listener set after last unsubscribe', () => {
     const unsub = subscribe('cleanup-test3', () => {});
     unsub();
-    // listener set should be cleaned up from the map
-    // subscribing again should work fine
     const unsub2 = subscribe('cleanup-test3', () => {});
     unsub2();
   });

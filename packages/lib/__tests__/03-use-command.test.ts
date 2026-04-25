@@ -1,12 +1,16 @@
 // @vitest-environment jsdom
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useCommand } from '../src/use-command';
+import { registerOptions, clearOptions } from '../src/registry';
 import { setList, getList } from '../src/store';
 
 describe('useCommand', () => {
   beforeEach(() => {
     setList('test', []);
+  });
+  afterEach(() => {
+    clearOptions();
   });
 
   it('should initialize with an empty list', () => {
@@ -18,18 +22,16 @@ describe('useCommand', () => {
   });
 
   it('should add an item using defaults', () => {
-    const { result } = renderHook(() =>
-      useCommand('test', { defaults: () => ({ value: 0 }) }),
-    );
+    registerOptions('test', { defaults: () => ({ value: 0 }) });
+    const { result } = renderHook(() => useCommand('test'));
     act(() => result.current.actions.add());
     expect(result.current.state.list).toEqual([{ value: 0 }]);
   });
 
   it('should add multiple items sequentially', () => {
     let id = 0;
-    const { result } = renderHook(() =>
-      useCommand('test', { defaults: () => ({ value: ++id }) }),
-    );
+    registerOptions('test', { defaults: () => ({ value: ++id }) });
+    const { result } = renderHook(() => useCommand('test'));
     act(() => result.current.actions.add());
     act(() => result.current.actions.add());
     act(() => result.current.actions.add());
@@ -37,9 +39,11 @@ describe('useCommand', () => {
   });
 
   it('should not add when no defaults provided', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { result } = renderHook(() => useCommand('test'));
     act(() => result.current.actions.add());
     expect(result.current.state.list).toEqual([]);
+    warnSpy.mockRestore();
   });
 
   it('should remove an item at index', () => {
@@ -56,7 +60,7 @@ describe('useCommand', () => {
     expect(result.current.state.list).toEqual([{ value: 11 }]);
   });
 
-  it('should reset the list', () => {
+  it('should set the list', () => {
     setList('test', [{ value: 1 }, { value: 2 }]);
     const { result } = renderHook(() => useCommand('test'));
     act(() => result.current.actions.set([{ value: 99 }]));
@@ -64,9 +68,8 @@ describe('useCommand', () => {
   });
 
   it('should track change event with action and index', () => {
-    const { result } = renderHook(() =>
-      useCommand('test', { defaults: () => ({ value: 0 }) }),
-    );
+    registerOptions('test', { defaults: () => ({ value: 0 }) });
+    const { result } = renderHook(() => useCommand('test'));
     act(() => result.current.actions.add());
     expect(result.current.state.change).toEqual({
       action: 'add',
@@ -90,9 +93,8 @@ describe('useCommand', () => {
   });
 
   it('should track set change event', () => {
-    const { result } = renderHook(() =>
-      useCommand('test', { defaults: () => ({ value: 0 }) }),
-    );
+    registerOptions('test', { defaults: () => ({ value: 0 }) });
+    const { result } = renderHook(() => useCommand('test'));
     act(() => result.current.actions.set([{ value: 1 }, { value: 2 }]));
     expect(result.current.state.change).toEqual({
       action: 'set',
@@ -106,36 +108,35 @@ describe('useCommand constraints', () => {
   beforeEach(() => {
     setList('constraint-test', []);
   });
+  afterEach(() => {
+    clearOptions();
+  });
 
   it('canAdd is false when list reaches max', () => {
     setList('constraint-test', [{ value: 1 }, { value: 2 }]);
-    const { result } = renderHook(() =>
-      useCommand('constraint-test', { max: 2, defaults: () => ({ value: 0 }) }),
-    );
+    registerOptions('constraint-test', { max: 2, defaults: () => ({ value: 0 }) });
+    const { result } = renderHook(() => useCommand('constraint-test'));
     expect(result.current.state.canAdd).toBe(false);
   });
 
   it('canAdd is true when below max', () => {
     setList('constraint-test', [{ value: 1 }]);
-    const { result } = renderHook(() =>
-      useCommand('constraint-test', { max: 3, defaults: () => ({ value: 0 }) }),
-    );
+    registerOptions('constraint-test', { max: 3, defaults: () => ({ value: 0 }) });
+    const { result } = renderHook(() => useCommand('constraint-test'));
     expect(result.current.state.canAdd).toBe(true);
   });
 
   it('canRemove is false when list at min', () => {
     setList('constraint-test', [{ value: 1 }]);
-    const { result } = renderHook(() =>
-      useCommand('constraint-test', { min: 1, defaults: () => ({ value: 0 }) }),
-    );
+    registerOptions('constraint-test', { min: 1, defaults: () => ({ value: 0 }) });
+    const { result } = renderHook(() => useCommand('constraint-test'));
     expect(result.current.state.canRemove).toBe(false);
   });
 
   it('canRemove is true when above min', () => {
     setList('constraint-test', [{ value: 1 }, { value: 2 }]);
-    const { result } = renderHook(() =>
-      useCommand('constraint-test', { min: 1, defaults: () => ({ value: 0 }) }),
-    );
+    registerOptions('constraint-test', { min: 1, defaults: () => ({ value: 0 }) });
+    const { result } = renderHook(() => useCommand('constraint-test'));
     expect(result.current.state.canRemove).toBe(true);
   });
 
@@ -150,11 +151,13 @@ describe('useCommand shared state', () => {
   beforeEach(() => {
     setList('shared-test', []);
   });
+  afterEach(() => {
+    clearOptions();
+  });
 
   it('two hooks with same name share the same store', () => {
-    const { result: hook1 } = renderHook(() =>
-      useCommand('shared-test', { defaults: () => ({ value: 0 }) }),
-    );
+    registerOptions('shared-test', { defaults: () => ({ value: 0 }) });
+    const { result: hook1 } = renderHook(() => useCommand('shared-test'));
     const { result: hook2 } = renderHook(() => useCommand('shared-test'));
 
     act(() => hook1.current.actions.add());

@@ -20,6 +20,7 @@ export interface ListActions<T> {
   set: (items: T[]) => void;
   up: (index: number) => void;
   down: (index: number) => void;
+  get: (index?: number) => T | T[] | undefined;
 }
 
 export interface ListApi<T> {

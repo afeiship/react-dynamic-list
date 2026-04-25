@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ReactList, type ReactListProps, INDEX } from '@jswork/react-list';
 import { useCommand } from './use-command';
+import { registerOptions } from './registry';
 import type { ChangeEvent } from './types';
 import equal from 'fast-deep-equal';
 import React from 'react';
@@ -16,7 +17,8 @@ export interface DynamicListProps<T = unknown> extends Omit<ReactListProps<T>, '
 
 export function DynamicList<T = unknown>(props: DynamicListProps<T>) {
   const { name, data, min, max, defaults, onChange, keyExtractor = INDEX, ...rest } = props;
-  const { state, actions } = useCommand<T>(name, { min, max, defaults });
+  registerOptions(name, { min, max, defaults });
+  const { state, actions } = useCommand<T>(name);
   const { list, change } = state;
   const { set } = actions;
   const dataRef = useRef<T[] | undefined>(undefined);
